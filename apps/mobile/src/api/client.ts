@@ -1,7 +1,7 @@
 import axios from 'axios';
 import storage from '../utils/storage';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api-production-9850.up.railway.app/api';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

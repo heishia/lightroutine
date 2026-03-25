@@ -13,6 +13,7 @@ import { JournalModule } from './journal/journal.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: resolve(__dirname, '..', '..', '..', '.env'),
+      ignoreEnvFile: process.env.NODE_ENV === 'production',
     }),
     PrismaModule,
     AuthModule,
