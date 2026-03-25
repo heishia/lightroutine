@@ -1,26 +1,6 @@
 import { Tabs } from 'expo-router';
-import { Text } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { Colors } from '../../src/constants/colors';
-
-function TabIcon({ label, focused }: { label: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    Home: 'H',
-    Calendar: 'C',
-    Statistics: 'S',
-    Settings: 'G',
-  };
-  return (
-    <Text
-      style={{
-        fontSize: 20,
-        fontWeight: focused ? '700' : '400',
-        color: focused ? Colors.primary : Colors.textTertiary,
-      }}
-    >
-      {icons[label] || label[0]}
-    </Text>
-  );
-}
 
 export default function TabsLayout() {
   return (
@@ -32,42 +12,46 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: Colors.surface,
           borderTopColor: Colors.border,
-          height: 85,
-          paddingBottom: 25,
-          paddingTop: 10,
+          height: 90,
+          paddingBottom: 28,
+          paddingTop: 8,
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '500',
+          fontWeight: '600',
+          marginTop: 2,
+        },
+        tabBarIconStyle: {
+          marginBottom: -2,
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ focused }) => <TabIcon label="Home" focused={focused} />,
+          title: '루틴',
+          tabBarIcon: ({ color, size }) => <Feather name="repeat" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="calendar"
         options={{
-          title: 'Calendar',
-          tabBarIcon: ({ focused }) => <TabIcon label="Calendar" focused={focused} />,
+          title: '기록',
+          tabBarIcon: ({ color, size }) => <Feather name="book-open" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="statistics"
         options={{
-          title: 'Statistics',
-          tabBarIcon: ({ focused }) => <TabIcon label="Statistics" focused={focused} />,
+          title: '통계',
+          tabBarIcon: ({ color, size }) => <Feather name="bar-chart-2" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
-          tabBarIcon: ({ focused }) => <TabIcon label="Settings" focused={focused} />,
+          title: '설정',
+          tabBarIcon: ({ color, size }) => <Feather name="settings" size={size} color={color} />,
         }}
       />
     </Tabs>

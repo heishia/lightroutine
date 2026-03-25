@@ -18,6 +18,7 @@ model User {
 
   routines    Routine[]
   routineLogs RoutineLog[]
+  journals    Journal[]
 
   @@map("users")
 }
@@ -56,4 +57,21 @@ model RoutineLog {
   @@unique([routineId, logDate])
   @@index([userId, logDate])
   @@map("routine_logs")
+}
+
+model Journal {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  entryDate DateTime @map("entry_date") @db.Date
+  mood      String
+  title     String   @db.VarChar(200)
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, entryDate])
+  @@index([userId, entryDate])
+  @@map("journals")
 }

@@ -1,179 +1,317 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
+  ScrollView,
   TouchableOpacity,
   StyleSheet,
-  FlatList,
   ActivityIndicator,
+  Alert,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants/colors';
-import { useMonthlyStats } from '../../src/hooks/use-statistics';
-import { useDailyTracking } from '../../src/hooks/use-tracking';
-import { useRoutines } from '../../src/hooks/use-routines';
-import type { RoutineResponse } from '@lightroutine/types';
+import {
+  useJournalByDate,
+  useMonthlyJournals,
+  useUpsertJournal,
+  useDeleteJournal,
+} from '../../src/hooks/use-journal';
+import { JournalEditorModal } from '../../src/components/JournalEditorModal';
 
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
-const DAY_HEADERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-
-function getCalendarDays(year: number, month: number) {
-  const firstDay = new Date(year, month - 1, 1);
-  let startDay = firstDay.getDay() - 1;
-  if (startDay < 0) startDay = 6;
-
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const cells: (number | null)[] = [];
-
-  for (let i = 0; i < startDay; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-  while (cells.length % 7 !== 0) cells.push(null);
-
-  return cells;
+function getTodayString(): string {
+  return new Date().toISOString().split('T')[0];
 }
 
-function getRateColor(rate: number): string {
-  if (rate === 0) return Colors.background;
-  if (rate < 30) return '#E8F5E9';
-  if (rate < 60) return '#A5D6A7';
-  if (rate < 90) return '#66BB6A';
-  return '#2E7D32';
+function formatDateString(year: number, month: number, day: number): string {
+  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function formatJournalDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  const year = d.getFullYear();
+  const month = d.getMonth() + 1;
+  const day = d.getDate();
+  const weekdays = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+  return `${year}년 ${month}월 ${day}일 ${weekdays[d.getDay()]}`;
 }
 
 export default function CalendarScreen() {
   const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [viewYear, setViewYear] = useState(now.getFullYear());
+  const [viewMonth, setViewMonth] = useState(now.getMonth());
+  const [selectedDate, setSelectedDate] = useState(getTodayString());
+  const [editorVisible, setEditorVisible] = useState(false);
 
-  const { data: monthlyData, isLoading } = useMonthlyStats(year, month);
-  const { data: dayTracking } = useDailyTracking(selectedDate || '');
-  const { data: routines } = useRoutines();
+  const todayStr = getTodayString();
+  const isToday = selectedDate === todayStr;
 
-  const rateMap = useMemo(() => {
-    const map = new Map<number, number>();
-    if (monthlyData?.days) {
-      monthlyData.days.forEach((d) => {
-        const day = parseInt(d.date.split('-')[2]);
-        map.set(day, d.completionRate);
+  const { data: monthlyData, isLoading: monthlyLoading } = useMonthlyJournals(viewYear, viewMonth + 1);
+  const { data: journal, isLoading: journalLoading } = useJournalByDate(selectedDate);
+  const upsertMutation = useUpsertJournal();
+  const deleteMutation = useDeleteJournal();
+
+  const entryMap = useMemo(() => {
+    const map = new Map<string, { mood: string; title: string }>();
+    if (monthlyData?.entries) {
+      monthlyData.entries.forEach((e) => {
+        map.set(e.entryDate, { mood: e.mood, title: e.title });
       });
     }
     return map;
   }, [monthlyData]);
 
-  const cells = useMemo(() => getCalendarDays(year, month), [year, month]);
+  const calendarDays = useMemo(() => {
+    const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+    const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
 
-  const prevMonth = () => {
-    if (month === 1) { setYear(year - 1); setMonth(12); }
-    else setMonth(month - 1);
-    setSelectedDate(null);
-  };
+    const days: { day: number; dateStr: string; isCurrentMonth: boolean }[] = [];
 
-  const nextMonth = () => {
-    if (month === 12) { setYear(year + 1); setMonth(1); }
-    else setMonth(month + 1);
-    setSelectedDate(null);
-  };
+    for (let i = firstDay - 1; i >= 0; i--) {
+      const d = daysInPrevMonth - i;
+      const m = viewMonth - 1;
+      const y = m < 0 ? viewYear - 1 : viewYear;
+      const actualMonth = m < 0 ? 11 : m;
+      days.push({ day: d, dateStr: formatDateString(y, actualMonth, d), isCurrentMonth: false });
+    }
 
-  const handleDayPress = (day: number) => {
-    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    setSelectedDate(dateStr === selectedDate ? null : dateStr);
-  };
+    for (let d = 1; d <= daysInMonth; d++) {
+      days.push({ day: d, dateStr: formatDateString(viewYear, viewMonth, d), isCurrentMonth: true });
+    }
 
-  const routineMap = useMemo(() => {
-    const map = new Map<string, RoutineResponse>();
-    routines?.forEach((r: RoutineResponse) => map.set(r.id, r));
-    return map;
-  }, [routines]);
+    const remaining = 7 - (days.length % 7);
+    if (remaining < 7) {
+      for (let d = 1; d <= remaining; d++) {
+        const m = viewMonth + 1;
+        const y = m > 11 ? viewYear + 1 : viewYear;
+        const actualMonth = m > 11 ? 0 : m;
+        days.push({ day: d, dateStr: formatDateString(y, actualMonth, d), isCurrentMonth: false });
+      }
+    }
+
+    return days;
+  }, [viewYear, viewMonth]);
+
+  const goToPrevMonth = useCallback(() => {
+    if (viewMonth === 0) {
+      setViewYear((y) => y - 1);
+      setViewMonth(11);
+    } else {
+      setViewMonth((m) => m - 1);
+    }
+  }, [viewMonth]);
+
+  const goToNextMonth = useCallback(() => {
+    if (viewMonth === 11) {
+      setViewYear((y) => y + 1);
+      setViewMonth(0);
+    } else {
+      setViewMonth((m) => m + 1);
+    }
+  }, [viewMonth]);
+
+  const handleSave = useCallback(
+    async (data: { mood: string; title: string; content: string }) => {
+      await upsertMutation.mutateAsync({
+        entryDate: selectedDate,
+        ...data,
+      });
+      setEditorVisible(false);
+    },
+    [selectedDate, upsertMutation],
+  );
+
+  const handleDelete = useCallback(() => {
+    if (!journal?.id) return;
+    Alert.alert('일기 삭제', '이 일기를 삭제할까요?', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '삭제',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteMutation.mutateAsync(journal.id);
+        },
+      },
+    ]);
+  }, [journal, deleteMutation]);
+
+  const monthLabel = `${viewYear}년 ${viewMonth + 1}월`;
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={prevMonth} style={styles.navBtn}>
-          <Text style={styles.navText}>{'<'}</Text>
-        </TouchableOpacity>
-        <Text style={styles.monthTitle}>{MONTH_NAMES[month - 1]} {year}</Text>
-        <TouchableOpacity onPress={nextMonth} style={styles.navBtn}>
-          <Text style={styles.navText}>{'>'}</Text>
-        </TouchableOpacity>
-      </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>기록</Text>
+          {!isToday && (
+            <TouchableOpacity
+              style={styles.todayBtn}
+              onPress={() => {
+                const n = new Date();
+                setViewYear(n.getFullYear());
+                setViewMonth(n.getMonth());
+                setSelectedDate(getTodayString());
+              }}
+            >
+              <Text style={styles.todayBtnText}>오늘</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
-      {isLoading ? (
-        <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 40 }} />
-      ) : (
-        <>
-          <View style={styles.dayHeaders}>
-            {DAY_HEADERS.map((d, i) => (
-              <Text key={i} style={styles.dayHeader}>{d}</Text>
+        {/* Mini Calendar */}
+        <View style={styles.calendarCard}>
+          <View style={styles.monthNav}>
+            <TouchableOpacity onPress={goToPrevMonth} style={styles.navBtn}>
+              <Feather name="chevron-left" size={20} color={Colors.text} />
+            </TouchableOpacity>
+            <Text style={styles.monthLabel}>{monthLabel}</Text>
+            <TouchableOpacity onPress={goToNextMonth} style={styles.navBtn}>
+              <Feather name="chevron-right" size={20} color={Colors.text} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.weekdayRow}>
+            {WEEKDAY_LABELS.map((label, i) => (
+              <View key={i} style={styles.weekdayCell}>
+                <Text
+                  style={[
+                    styles.weekdayText,
+                    i === 0 && { color: Colors.error },
+                    i === 6 && { color: Colors.primary },
+                  ]}
+                >
+                  {label}
+                </Text>
+              </View>
             ))}
           </View>
 
-          <View style={styles.grid}>
-            {cells.map((day, idx) => {
-              const rate = day ? (rateMap.get(day) ?? 0) : 0;
-              const isSelected =
-                day &&
-                selectedDate ===
-                  `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          {monthlyLoading ? (
+            <View style={styles.calendarLoading}>
+              <ActivityIndicator size="small" color={Colors.primary} />
+            </View>
+          ) : (
+            <View style={styles.daysGrid}>
+              {calendarDays.map(({ day, dateStr, isCurrentMonth }, index) => {
+                const isSelected = dateStr === selectedDate;
+                const isDayToday = dateStr === todayStr;
+                const dayOfWeek = index % 7;
+                const entry = entryMap.get(dateStr);
 
-              return (
-                <TouchableOpacity
-                  key={idx}
-                  style={[
-                    styles.cell,
-                    day ? { backgroundColor: getRateColor(rate) } : undefined,
-                    isSelected ? styles.cellSelected : undefined,
-                  ]}
-                  onPress={() => day && handleDayPress(day)}
-                  disabled={!day}
-                >
-                  <Text
-                    style={[
-                      styles.cellText,
-                      !day && styles.cellTextEmpty,
-                      rate >= 60 && { color: '#FFFFFF' },
-                    ]}
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.dayCell}
+                    onPress={() => setSelectedDate(dateStr)}
+                    activeOpacity={0.6}
                   >
-                    {day ?? ''}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {selectedDate && dayTracking && (
-            <View style={styles.detail}>
-              <Text style={styles.detailTitle}>
-                {dayTracking.completedCount}/{dayTracking.totalCount} completed
-              </Text>
-              <FlatList
-                data={dayTracking.logs}
-                keyExtractor={(item) => item.routineId}
-                renderItem={({ item }) => {
-                  const routine = routineMap.get(item.routineId);
-                  return (
-                    <View style={styles.logItem}>
-                      <View
+                    <View
+                      style={[
+                        styles.dayInner,
+                        isSelected && styles.dayInnerSelected,
+                        isDayToday && !isSelected && styles.dayInnerToday,
+                      ]}
+                    >
+                      <Text
                         style={[
-                          styles.logDot,
-                          { backgroundColor: item.completed ? Colors.success : Colors.disabled },
+                          styles.dayText,
+                          !isCurrentMonth && styles.dayTextMuted,
+                          dayOfWeek === 0 && isCurrentMonth && { color: Colors.error },
+                          dayOfWeek === 6 && isCurrentMonth && { color: Colors.primary },
+                          isSelected && { color: '#FFFFFF' },
                         ]}
-                      />
-                      <Text style={styles.logText}>
-                        {routine?.name || 'Unknown routine'}
+                      >
+                        {day}
                       </Text>
                     </View>
-                  );
-                }}
-              />
+                    {entry && isCurrentMonth ? (
+                      <Text style={styles.dayMood}>{entry.mood}</Text>
+                    ) : (
+                      <View style={styles.dayMoodPlaceholder} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           )}
-        </>
-      )}
+        </View>
+
+        {/* Journal Entry View */}
+        <View style={styles.journalSection}>
+          <View style={styles.journalDateRow}>
+            <View style={styles.journalDateLine} />
+            <Text style={styles.journalDate}>{formatJournalDate(selectedDate)}</Text>
+            <View style={styles.journalDateLine} />
+          </View>
+
+          {journalLoading ? (
+            <View style={styles.loadingArea}>
+              <ActivityIndicator size="small" color={Colors.primary} />
+            </View>
+          ) : journal ? (
+            <View style={styles.entryCard}>
+              <View style={styles.entryHeader}>
+                <Text style={styles.entryMood}>{journal.mood}</Text>
+                <View style={styles.entryActions}>
+                  <TouchableOpacity
+                    style={styles.actionBtn}
+                    onPress={() => setEditorVisible(true)}
+                  >
+                    <Feather name="edit-2" size={16} color={Colors.textSecondary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionBtn} onPress={handleDelete}>
+                    <Feather name="trash-2" size={16} color={Colors.error} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <Text style={styles.entryTitle}>{journal.title}</Text>
+              {journal.content.length > 0 && (
+                <Text style={styles.entryContent}>{journal.content}</Text>
+              )}
+              <Text style={styles.entryTimestamp}>
+                {new Date(journal.updatedAt).toLocaleTimeString('ko-KR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })} 에 작성
+              </Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.emptyCard}
+              onPress={() => setEditorVisible(true)}
+              activeOpacity={0.7}
+            >
+              <Feather name="feather" size={36} color={Colors.disabled} />
+              <Text style={styles.emptyTitle}>
+                {isToday ? '오늘의 일기를 써보세요' : '이 날의 기록이 없습니다'}
+              </Text>
+              <Text style={styles.emptySubtext}>
+                {isToday
+                  ? '하루를 돌아보며 기록을 남겨보세요'
+                  : '탭하여 기록을 남길 수 있습니다'}
+              </Text>
+              <View style={styles.writeBtn}>
+                <Feather name="plus" size={16} color={Colors.primary} />
+                <Text style={styles.writeBtnText}>일기 쓰기</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        </View>
+      </ScrollView>
+
+      <JournalEditorModal
+        visible={editorVisible}
+        dateStr={selectedDate}
+        existing={journal ?? null}
+        saving={upsertMutation.isPending}
+        onClose={() => setEditorVisible(false)}
+        onSave={handleSave}
+      />
     </SafeAreaView>
   );
 }
@@ -183,86 +321,225 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  scrollContent: {
+    paddingBottom: 120,
+  },
+
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
   },
-  navBtn: {
-    padding: Spacing.sm,
-  },
-  navText: {
-    fontSize: FontSize.xl,
-    color: Colors.primary,
-    fontWeight: '600',
-  },
-  monthTitle: {
-    fontSize: FontSize.xl,
+  headerTitle: {
+    fontSize: FontSize.xxl,
     fontWeight: '700',
     color: Colors.text,
   },
-  dayHeaders: {
+  todayBtn: {
+    backgroundColor: Colors.primary + '15',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs + 2,
+    borderRadius: BorderRadius.sm,
+  },
+  todayBtnText: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+
+  calendarCard: {
+    backgroundColor: Colors.surface,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    shadowColor: Colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  monthNav: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing.lg,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  navBtn: {
+    padding: Spacing.xs,
+  },
+  monthLabel: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    color: Colors.text,
+  },
+  weekdayRow: {
+    flexDirection: 'row',
     marginBottom: Spacing.xs,
   },
-  dayHeader: {
+  weekdayCell: {
     flex: 1,
-    textAlign: 'center',
+    alignItems: 'center',
+    paddingVertical: Spacing.xs,
+  },
+  weekdayText: {
     fontSize: FontSize.xs,
     fontWeight: '600',
-    color: Colors.textTertiary,
+    color: Colors.textSecondary,
   },
-  grid: {
+  calendarLoading: {
+    paddingVertical: Spacing.xxl,
+    alignItems: 'center',
+  },
+  daysGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: Spacing.lg,
   },
-  cell: {
-    width: '14.28%',
-    aspectRatio: 1,
+  dayCell: {
+    width: `${100 / 7}%` as any,
+    alignItems: 'center',
+    paddingVertical: 2,
+  },
+  dayInner: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: BorderRadius.sm,
-    marginBottom: 2,
   },
-  cellSelected: {
-    borderWidth: 2,
+  dayInnerSelected: {
+    backgroundColor: Colors.primary,
+  },
+  dayInnerToday: {
+    borderWidth: 1.5,
     borderColor: Colors.primary,
   },
-  cellText: {
+  dayText: {
     fontSize: FontSize.sm,
     fontWeight: '500',
     color: Colors.text,
   },
-  cellTextEmpty: {
-    color: 'transparent',
+  dayTextMuted: {
+    color: Colors.disabled,
   },
-  detail: {
+  dayMood: {
+    fontSize: 10,
+    height: 14,
+    lineHeight: 14,
+    textAlign: 'center',
+  },
+  dayMoodPlaceholder: {
+    height: 14,
+  },
+
+  journalSection: {
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+  },
+  journalDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  journalDateLine: {
     flex: 1,
-    padding: Spacing.lg,
+    height: 1,
+    backgroundColor: Colors.border,
   },
-  detailTitle: {
-    fontSize: FontSize.md,
+  journalDate: {
+    fontSize: FontSize.sm,
     fontWeight: '600',
+    color: Colors.textSecondary,
+    paddingHorizontal: Spacing.md,
+  },
+  loadingArea: {
+    paddingVertical: Spacing.xxl,
+    alignItems: 'center',
+  },
+
+  entryCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    shadowColor: Colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  entryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  entryMood: {
+    fontSize: 36,
+  },
+  entryActions: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  actionBtn: {
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.background,
+  },
+  entryTitle: {
+    fontSize: FontSize.xl,
+    fontWeight: '700',
+    color: Colors.text,
+    marginBottom: Spacing.sm,
+  },
+  entryContent: {
+    fontSize: FontSize.md,
+    lineHeight: 24,
     color: Colors.text,
     marginBottom: Spacing.md,
   },
-  logItem: {
+  entryTimestamp: {
+    fontSize: FontSize.xs,
+    color: Colors.textTertiary,
+    textAlign: 'right',
+  },
+
+  emptyCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.xl,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderStyle: 'dashed',
+  },
+  emptyTitle: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginTop: Spacing.md,
+  },
+  emptySubtext: {
+    fontSize: FontSize.sm,
+    color: Colors.textTertiary,
+    marginTop: Spacing.xs,
+    textAlign: 'center',
+  },
+  writeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.lg,
+    backgroundColor: Colors.primary + '15',
+    paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.sm,
   },
-  logDot: {
-    width: 10,
-    height: 10,
-    borderRadius: BorderRadius.full,
-    marginRight: Spacing.sm,
-  },
-  logText: {
+  writeBtnText: {
     fontSize: FontSize.sm,
-    color: Colors.text,
+    fontWeight: '600',
+    color: Colors.primary,
   },
 });
