@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -33,7 +34,13 @@ export default function RootLayout() {
     }
   }, [isAuthenticated, segments, isLoading]);
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color="#4A90D9" />
+      </View>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -46,3 +53,12 @@ export default function RootLayout() {
     </QueryClientProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+  },
+});
