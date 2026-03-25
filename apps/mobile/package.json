@@ -2,12 +2,12 @@
   "name": "apps-mobile",
   "version": "0.1.0",
   "private": true,
-  "main": "expo-router/entry",
+  "main": "./index.js",
   "scripts": {
     "dev": "expo start",
     "build": "eas build",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "lint": "eslint . --ext .ts,.tsx",
     "clean": "rimraf .expo dist"
   },

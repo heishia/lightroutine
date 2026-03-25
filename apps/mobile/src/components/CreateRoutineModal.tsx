@@ -54,7 +54,7 @@ export function CreateRoutineModal({ visible, onClose, onSubmit }: Props) {
   const [name, setName] = useState('');
   const [category, setCategory] = useState<RoutineCategory>('HEALTH');
   const [timeSlot, setTimeSlot] = useState<TimeSlot>('MORNING');
-  const [color, setColor] = useState(ROUTINE_COLORS[0]);
+  const [color, setColor] = useState<typeof ROUTINE_COLORS[number]>(ROUTINE_COLORS[0]);
   const [repeatDays, setRepeatDays] = useState<Weekday[]>([
     'MON', 'TUE', 'WED', 'THU', 'FRI',
   ]);
