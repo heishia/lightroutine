@@ -7,19 +7,19 @@ const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] as const;
 export class CreateRoutineDto {
   @IsString()
   @MaxLength(100)
-  name: string;
+  name!: string;
 
   @IsIn(CATEGORIES)
-  category: string;
+  category!: string;
 
   @IsIn(TIME_SLOTS)
-  timeSlot: string;
+  timeSlot!: string;
 
   @IsString()
-  color: string;
+  color!: string;
 
   @IsArray()
   @ArrayMinSize(1)
   @IsIn(WEEKDAYS, { each: true })
-  repeatDays: string[];
+  repeatDays!: string[];
 }
