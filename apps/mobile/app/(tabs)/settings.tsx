@@ -23,10 +23,10 @@ export default function SettingsScreen() {
   const clearAuth = useAuthStore((s) => s.clearAuth);
 
   const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert('로그아웃', '정말 로그아웃 하시겠습니까?', [
+      { text: '취소', style: 'cancel' },
       {
-        text: 'Logout',
+        text: '로그아웃',
         style: 'destructive',
         onPress: async () => {
           try {
@@ -42,25 +42,25 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Settings</Text>
+      <Text style={styles.title}>설정</Text>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>PROFILE</Text>
+        <Text style={styles.sectionTitle}>프로필</Text>
         <View style={styles.card}>
-          <SettingsRow label="Nickname" value={user?.nickname} />
-          <SettingsRow label="Email" value={user?.email} />
+          <SettingsRow label="닉네임" value={user?.nickname} />
+          <SettingsRow label="이메일" value={user?.email} />
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>APP</Text>
+        <Text style={styles.sectionTitle}>앱 정보</Text>
         <View style={styles.card}>
-          <SettingsRow label="Version" value="0.1.0" />
+          <SettingsRow label="버전" value="0.1.0" />
         </View>
       </View>
 
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-        <Text style={styles.logoutText}>Log Out</Text>
+        <Text style={styles.logoutText}>로그아웃</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );

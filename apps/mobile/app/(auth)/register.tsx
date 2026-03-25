@@ -24,19 +24,21 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!email || !password || !nickname) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert('오류', '모든 항목을 입력해 주세요');
       return;
     }
     if (password.length < 8) {
-      Alert.alert('Error', 'Password must be at least 8 characters');
+      Alert.alert('오류', '비밀번호는 8자 이상이어야 합니다');
       return;
     }
     setLoading(true);
     try {
       const result = await registerUser({ email, password, nickname });
       await setAuth(result.user, result.accessToken, result.refreshToken);
-    } catch {
-      Alert.alert('Error', 'Registration failed. Please try again.');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message;
+      const text = Array.isArray(msg) ? msg.join('\n') : msg;
+      Alert.alert('오류', text || '회원가입에 실패했습니다. 다시 시도해 주세요.');
     } finally {
       setLoading(false);
     }
@@ -48,13 +50,13 @@ export default function RegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.content}>
-        <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Start building your routines today</Text>
+        <Text style={styles.title}>회원가입</Text>
+        <Text style={styles.subtitle}>오늘부터 나만의 루틴을 시작하세요</Text>
 
         <View style={styles.form}>
           <TextInput
             style={styles.input}
-            placeholder="Nickname"
+            placeholder="닉네임"
             placeholderTextColor={Colors.textTertiary}
             value={nickname}
             onChangeText={setNickname}
@@ -63,7 +65,7 @@ export default function RegisterScreen() {
           />
           <TextInput
             style={styles.input}
-            placeholder="Email"
+            placeholder="이메일"
             placeholderTextColor={Colors.textTertiary}
             value={email}
             onChangeText={setEmail}
@@ -72,7 +74,7 @@ export default function RegisterScreen() {
           />
           <TextInput
             style={styles.input}
-            placeholder="Password (min 8 characters)"
+            placeholder="비밀번호 (8자 이상)"
             placeholderTextColor={Colors.textTertiary}
             value={password}
             onChangeText={setPassword}
@@ -87,13 +89,13 @@ export default function RegisterScreen() {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Sign Up</Text>
+              <Text style={styles.buttonText}>가입하기</Text>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => router.back()}>
             <Text style={styles.linkText}>
-              Already have an account? <Text style={styles.linkBold}>Log In</Text>
+              이미 계정이 있으신가요? <Text style={styles.linkBold}>로그인</Text>
             </Text>
           </TouchableOpacity>
         </View>

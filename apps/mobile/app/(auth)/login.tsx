@@ -23,15 +23,17 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert('오류', '모든 항목을 입력해 주세요');
       return;
     }
     setLoading(true);
     try {
       const result = await loginUser({ email, password });
       await setAuth(result.user, result.accessToken, result.refreshToken);
-    } catch {
-      Alert.alert('Error', 'Invalid email or password');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message;
+      const text = Array.isArray(msg) ? msg.join('\n') : msg;
+      Alert.alert('오류', text || '이메일 또는 비밀번호가 올바르지 않습니다');
     } finally {
       setLoading(false);
     }
@@ -44,12 +46,12 @@ export default function LoginScreen() {
     >
       <View style={styles.content}>
         <Text style={styles.title}>LightRoutine</Text>
-        <Text style={styles.subtitle}>Build better habits, one day at a time</Text>
+        <Text style={styles.subtitle}>하루하루, 더 나은 습관을 만들어 가세요</Text>
 
         <View style={styles.form}>
           <TextInput
             style={styles.input}
-            placeholder="Email"
+            placeholder="이메일"
             placeholderTextColor={Colors.textTertiary}
             value={email}
             onChangeText={setEmail}
@@ -58,7 +60,7 @@ export default function LoginScreen() {
           />
           <TextInput
             style={styles.input}
-            placeholder="Password"
+            placeholder="비밀번호"
             placeholderTextColor={Colors.textTertiary}
             value={password}
             onChangeText={setPassword}
@@ -73,13 +75,13 @@ export default function LoginScreen() {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Log In</Text>
+              <Text style={styles.buttonText}>로그인</Text>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
             <Text style={styles.linkText}>
-              Don't have an account? <Text style={styles.linkBold}>Sign Up</Text>
+              계정이 없으신가요? <Text style={styles.linkBold}>회원가입</Text>
             </Text>
           </TouchableOpacity>
         </View>

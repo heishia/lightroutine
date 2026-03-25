@@ -5,8 +5,8 @@ import { PrismaService } from '../prisma/prisma.service';
 export class TrackingService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async toggle(userId: string, routineId: string) {
-    const today = new Date();
+  async toggle(userId: string, routineId: string, dateStr?: string) {
+    const today = dateStr ? new Date(dateStr) : new Date();
     today.setHours(0, 0, 0, 0);
 
     const existing = await this.prisma.routineLog.findUnique({

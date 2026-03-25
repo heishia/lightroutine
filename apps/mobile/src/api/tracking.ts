@@ -1,8 +1,8 @@
 import { apiClient } from './client';
 import type { DailyTrackingResponse } from '@lightroutine/types';
 
-export async function toggleRoutine(routineId: string) {
-  const res = await apiClient.post(`/tracking/${routineId}/toggle`);
+export async function toggleRoutine(routineId: string, date?: string) {
+  const res = await apiClient.post(`/tracking/${routineId}/toggle`, date ? { date } : {});
   return res.data.data;
 }
 

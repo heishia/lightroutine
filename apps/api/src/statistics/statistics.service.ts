@@ -19,14 +19,23 @@ export class StatisticsService {
       where: { userId, logDate: today },
     });
 
-    const completedCount = logs.length;
+    const logSet = new Set(logs.map((l) => l.routineId));
+    const completedCount = activeRoutines.filter((r) => logSet.has(r.id)).length;
     const totalCount = activeRoutines.length;
+
+    const routinesList = activeRoutines.map((r) => ({
+      id: r.id,
+      name: r.name,
+      color: r.color,
+      completed: logSet.has(r.id),
+    }));
 
     return {
       date: this.formatDate(today),
       completedCount,
       totalCount,
       completionRate: totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100),
+      routines: routinesList,
     };
   }
 
@@ -78,11 +87,45 @@ export class StatisticsService {
       totalRate += rate;
     }
 
+    const routineDetails = routines.map((routine) => {
+      const repeatDaysList = routine.repeatDays.split(',');
+      const completions: (boolean | null)[] = [];
+      let completedDays = 0;
+      let activeDays = 0;
+
+      for (let i = 0; i < 7; i++) {
+        const day = new Date(startOfWeek);
+        day.setDate(day.getDate() + i);
+        const dateKey = this.formatDate(day);
+        const dayName = this.getDayName(day);
+
+        if (!repeatDaysList.includes(dayName)) {
+          completions.push(null);
+          continue;
+        }
+
+        activeDays++;
+        const completedSet = logsByDate.get(dateKey) || new Set();
+        const done = completedSet.has(routine.id);
+        completions.push(done);
+        if (done) completedDays++;
+      }
+
+      return {
+        routineId: routine.id,
+        routineName: routine.name,
+        color: routine.color,
+        completions,
+        completionRate: activeDays === 0 ? 0 : Math.round((completedDays / activeDays) * 100),
+      };
+    });
+
     return {
       startDate: this.formatDate(startOfWeek),
       endDate: this.formatDate(endOfWeek),
       dailyRates,
       averageRate: Math.round(totalRate / 7),
+      routineDetails,
     };
   }
 

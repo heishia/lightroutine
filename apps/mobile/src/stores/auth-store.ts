@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import * as SecureStore from 'expo-secure-store';
+import storage from '../utils/storage';
 import type { UserProfile } from '@lightroutine/types';
 
 interface AuthState {
@@ -17,23 +17,23 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: true,
 
   setAuth: async (user, accessToken, refreshToken) => {
-    await SecureStore.setItemAsync('accessToken', accessToken);
-    await SecureStore.setItemAsync('refreshToken', refreshToken);
-    await SecureStore.setItemAsync('user', JSON.stringify(user));
+    await storage.setItemAsync('accessToken', accessToken);
+    await storage.setItemAsync('refreshToken', refreshToken);
+    await storage.setItemAsync('user', JSON.stringify(user));
     set({ user, isAuthenticated: true, isLoading: false });
   },
 
   clearAuth: async () => {
-    await SecureStore.deleteItemAsync('accessToken');
-    await SecureStore.deleteItemAsync('refreshToken');
-    await SecureStore.deleteItemAsync('user');
+    await storage.deleteItemAsync('accessToken');
+    await storage.deleteItemAsync('refreshToken');
+    await storage.deleteItemAsync('user');
     set({ user: null, isAuthenticated: false, isLoading: false });
   },
 
   loadAuth: async () => {
     try {
-      const token = await SecureStore.getItemAsync('accessToken');
-      const userStr = await SecureStore.getItemAsync('user');
+      const token = await storage.getItemAsync('accessToken');
+      const userStr = await storage.getItemAsync('user');
       if (token && userStr) {
         const user = JSON.parse(userStr) as UserProfile;
         set({ user, isAuthenticated: true, isLoading: false });

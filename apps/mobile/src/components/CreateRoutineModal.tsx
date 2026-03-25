@@ -26,28 +26,28 @@ interface Props {
 }
 
 const CATEGORIES: { value: RoutineCategory; label: string }[] = [
-  { value: 'HEALTH', label: 'Health' },
-  { value: 'EXERCISE', label: 'Exercise' },
-  { value: 'STUDY', label: 'Study' },
-  { value: 'LIFESTYLE', label: 'Lifestyle' },
-  { value: 'WORK', label: 'Work' },
-  { value: 'OTHER', label: 'Other' },
+  { value: 'HEALTH', label: '건강' },
+  { value: 'EXERCISE', label: '운동' },
+  { value: 'STUDY', label: '공부' },
+  { value: 'LIFESTYLE', label: '생활' },
+  { value: 'WORK', label: '업무' },
+  { value: 'OTHER', label: '기타' },
 ];
 
 const TIME_SLOTS: { value: TimeSlot; label: string }[] = [
-  { value: 'MORNING', label: 'Morning' },
-  { value: 'AFTERNOON', label: 'Afternoon' },
-  { value: 'EVENING', label: 'Evening' },
+  { value: 'MORNING', label: '아침' },
+  { value: 'AFTERNOON', label: '오후' },
+  { value: 'EVENING', label: '저녁' },
 ];
 
 const WEEKDAYS: { value: Weekday; label: string }[] = [
-  { value: 'MON', label: 'M' },
-  { value: 'TUE', label: 'T' },
-  { value: 'WED', label: 'W' },
-  { value: 'THU', label: 'T' },
-  { value: 'FRI', label: 'F' },
-  { value: 'SAT', label: 'S' },
-  { value: 'SUN', label: 'S' },
+  { value: 'MON', label: '월' },
+  { value: 'TUE', label: '화' },
+  { value: 'WED', label: '수' },
+  { value: 'THU', label: '목' },
+  { value: 'FRI', label: '금' },
+  { value: 'SAT', label: '토' },
+  { value: 'SUN', label: '일' },
 ];
 
 export function CreateRoutineModal({ visible, onClose, onSubmit }: Props) {
@@ -67,11 +67,11 @@ export function CreateRoutineModal({ visible, onClose, onSubmit }: Props) {
 
   const handleSubmit = () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'Please enter a routine name');
+      Alert.alert('오류', '루틴 이름을 입력해 주세요');
       return;
     }
     if (repeatDays.length === 0) {
-      Alert.alert('Error', 'Please select at least one day');
+      Alert.alert('오류', '최소 하루 이상 선택해 주세요');
       return;
     }
     onSubmit({ name: name.trim(), category, timeSlot, color, repeatDays });
@@ -91,19 +91,19 @@ export function CreateRoutineModal({ visible, onClose, onSubmit }: Props) {
       <View style={styles.overlay}>
         <View style={styles.modal}>
           <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.title}>New Routine</Text>
+            <Text style={styles.title}>새 루틴</Text>
 
-            <Text style={styles.label}>Name</Text>
+            <Text style={styles.label}>이름</Text>
             <TextInput
               style={styles.input}
               value={name}
               onChangeText={setName}
-              placeholder="e.g. Morning workout"
+              placeholder="예: 아침 운동"
               placeholderTextColor={Colors.textTertiary}
               maxLength={100}
             />
 
-            <Text style={styles.label}>Category</Text>
+            <Text style={styles.label}>카테고리</Text>
             <View style={styles.chipRow}>
               {CATEGORIES.map((c) => (
                 <TouchableOpacity
@@ -120,7 +120,7 @@ export function CreateRoutineModal({ visible, onClose, onSubmit }: Props) {
               ))}
             </View>
 
-            <Text style={styles.label}>Time</Text>
+            <Text style={styles.label}>시간대</Text>
             <View style={styles.chipRow}>
               {TIME_SLOTS.map((t) => (
                 <TouchableOpacity
@@ -137,7 +137,7 @@ export function CreateRoutineModal({ visible, onClose, onSubmit }: Props) {
               ))}
             </View>
 
-            <Text style={styles.label}>Repeat</Text>
+            <Text style={styles.label}>반복 요일</Text>
             <View style={styles.dayRow}>
               {WEEKDAYS.map((d) => (
                 <TouchableOpacity
@@ -157,7 +157,7 @@ export function CreateRoutineModal({ visible, onClose, onSubmit }: Props) {
               ))}
             </View>
 
-            <Text style={styles.label}>Color</Text>
+            <Text style={styles.label}>색상</Text>
             <View style={styles.colorRow}>
               {ROUTINE_COLORS.map((c) => (
                 <TouchableOpacity
@@ -174,10 +174,10 @@ export function CreateRoutineModal({ visible, onClose, onSubmit }: Props) {
 
             <View style={styles.actions}>
               <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
-                <Text style={styles.cancelText}>Cancel</Text>
+                <Text style={styles.cancelText}>취소</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-                <Text style={styles.submitText}>Create</Text>
+                <Text style={styles.submitText}>만들기</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>

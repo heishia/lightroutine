@@ -3,6 +3,20 @@ export interface TodayStatisticsResponse {
   completedCount: number;
   totalCount: number;
   completionRate: number;
+  routines: {
+    id: string;
+    name: string;
+    color: string;
+    completed: boolean;
+  }[];
+}
+
+export interface RoutineWeeklyDetail {
+  routineId: string;
+  routineName: string;
+  color: string;
+  completions: (boolean | null)[];
+  completionRate: number;
 }
 
 export interface WeeklyStatisticsResponse {
@@ -15,6 +29,7 @@ export interface WeeklyStatisticsResponse {
     totalCount: number;
   }[];
   averageRate: number;
+  routineDetails: RoutineWeeklyDetail[];
 }
 
 export interface MonthlyCalendarDay {

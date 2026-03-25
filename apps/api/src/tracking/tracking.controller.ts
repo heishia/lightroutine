@@ -1,5 +1,6 @@
-import { Controller, Post, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Param, Query, Body, UseGuards } from '@nestjs/common';
 import { TrackingService } from './tracking.service';
+import { ToggleRoutineDto } from './dto/toggle-routine.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
@@ -12,8 +13,9 @@ export class TrackingController {
   async toggle(
     @CurrentUser('id') userId: string,
     @Param('routineId') routineId: string,
+    @Body() dto: ToggleRoutineDto,
   ) {
-    const data = await this.trackingService.toggle(userId, routineId);
+    const data = await this.trackingService.toggle(userId, routineId, dto.date);
     return { success: true, data };
   }
 

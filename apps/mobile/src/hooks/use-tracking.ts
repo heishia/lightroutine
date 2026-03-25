@@ -8,10 +8,10 @@ export function useDailyTracking(date: string) {
   });
 }
 
-export function useToggleRoutine() {
+export function useToggleRoutine(date?: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (routineId: string) => toggleRoutine(routineId),
+    mutationFn: (routineId: string) => toggleRoutine(routineId, date),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tracking'] });
       queryClient.invalidateQueries({ queryKey: ['statistics'] });

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,30 +9,56 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants/colors';
 import { useRoutines, useCreateRoutine } from '../../src/hooks/use-routines';
 import { useDailyTracking, useToggleRoutine } from '../../src/hooks/use-tracking';
-import { useTodayStats } from '../../src/hooks/use-statistics';
 import { RoutineItem } from '../../src/components/RoutineItem';
 import { CreateRoutineModal } from '../../src/components/CreateRoutineModal';
+import { DatePickerModal } from '../../src/components/DatePickerModal';
 import type { RoutineResponse, Weekday, TimeSlot, RoutineCategory } from '@lightroutine/types';
 
-const TODAY = new Date().toISOString().split('T')[0];
 const DAY_NAMES: Weekday[] = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-const TODAY_DAY = DAY_NAMES[new Date().getDay()];
+
+function getDateString(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
+
+function getTodayString(): string {
+  return getDateString(new Date());
+}
+
+function getWeekdayFromDateStr(dateStr: string): Weekday {
+  const d = new Date(dateStr);
+  return DAY_NAMES[d.getDay()];
+}
+
+function formatKoreanDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('ko-KR', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+}
 
 export default function HomeScreen() {
+  const [selectedDate, setSelectedDate] = useState(getTodayString);
   const [showModal, setShowModal] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const isToday = selectedDate === getTodayString();
+  const selectedWeekday = getWeekdayFromDateStr(selectedDate);
+
   const { data: routines, isLoading: routinesLoading, refetch } = useRoutines();
-  const { data: tracking } = useDailyTracking(TODAY);
-  const { data: todayStats } = useTodayStats();
+  const { data: tracking } = useDailyTracking(selectedDate);
   const createMutation = useCreateRoutine();
-  const toggleMutation = useToggleRoutine();
+  const toggleMutation = useToggleRoutine(selectedDate);
 
   const activeRoutines = useMemo(() => {
     if (!routines) return [];
-    return routines.filter((r: RoutineResponse) => r.repeatDays.includes(TODAY_DAY));
-  }, [routines]);
+    return routines.filter((r: RoutineResponse) => r.repeatDays.includes(selectedWeekday));
+  }, [routines, selectedWeekday]);
 
   const grouped = useMemo(() => {
     const groups: Record<string, RoutineResponse[]> = {
@@ -51,6 +77,12 @@ export default function HomeScreen() {
     return new Set(tracking.logs.filter((l) => l.completed).map((l) => l.routineId));
   }, [tracking]);
 
+  const completionRate = useMemo(() => {
+    if (!tracking) return 0;
+    const { completedCount, totalCount } = tracking;
+    return totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
+  }, [tracking]);
+
   const handleCreate = async (data: {
     name: string;
     category: RoutineCategory;
@@ -62,11 +94,18 @@ export default function HomeScreen() {
     setShowModal(false);
   };
 
+  const handleDateSelect = useCallback((dateStr: string) => {
+    setSelectedDate(dateStr);
+    setShowDatePicker(false);
+  }, []);
+
   const TIME_LABELS: Record<string, string> = {
-    MORNING: 'Morning',
-    AFTERNOON: 'Afternoon',
-    EVENING: 'Evening',
+    MORNING: '아침',
+    AFTERNOON: '오후',
+    EVENING: '저녁',
   };
+
+  const headerTitle = isToday ? '오늘' : formatKoreanDate(selectedDate).split(' ').pop() || '';
 
   if (routinesLoading) {
     return (
@@ -79,22 +118,27 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Today</Text>
-          <Text style={styles.date}>
-            {new Date().toLocaleDateString('en-US', {
-              weekday: 'long',
-              month: 'long',
-              day: 'numeric',
-            })}
-          </Text>
-        </View>
-        {todayStats && (
-          <View style={styles.statsCard}>
-            <Text style={styles.statsNumber}>{todayStats.completionRate}%</Text>
-            <Text style={styles.statsLabel}>done</Text>
+        <TouchableOpacity onPress={() => setShowDatePicker(true)} activeOpacity={0.7}>
+          <View style={styles.dateRow}>
+            <Text style={styles.greeting}>{isToday ? '오늘' : formatKoreanDate(selectedDate).split(' ')[0]}</Text>
+            <Feather name="chevron-down" size={20} color={Colors.textSecondary} style={{ marginLeft: 4, marginTop: 2 }} />
           </View>
-        )}
+          <Text style={styles.date}>
+            {formatKoreanDate(selectedDate)}
+          </Text>
+          {!isToday && (
+            <TouchableOpacity
+              style={styles.todayChip}
+              onPress={() => setSelectedDate(getTodayString())}
+            >
+              <Text style={styles.todayChipText}>오늘로 이동</Text>
+            </TouchableOpacity>
+          )}
+        </TouchableOpacity>
+        <View style={styles.statsCard}>
+          <Text style={styles.statsNumber}>{completionRate}%</Text>
+          <Text style={styles.statsLabel}>완료</Text>
+        </View>
       </View>
 
       <FlatList
@@ -118,8 +162,14 @@ export default function HomeScreen() {
         )}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>No routines for today</Text>
-            <Text style={styles.emptySubtext}>Tap + to create your first routine</Text>
+            <Text style={styles.emptyText}>
+              {isToday ? '오늘 루틴이 없습니다' : '이 날짜에 루틴이 없습니다'}
+            </Text>
+            <Text style={styles.emptySubtext}>
+              {isToday
+                ? '+ 버튼을 눌러 첫 루틴을 만들어 보세요'
+                : '해당 요일에 반복되는 루틴이 없습니다'}
+            </Text>
           </View>
         }
       />
@@ -132,6 +182,13 @@ export default function HomeScreen() {
         visible={showModal}
         onClose={() => setShowModal(false)}
         onSubmit={handleCreate}
+      />
+
+      <DatePickerModal
+        visible={showDatePicker}
+        selectedDate={selectedDate}
+        onClose={() => setShowDatePicker(false)}
+        onSelect={handleDateSelect}
       />
     </SafeAreaView>
   );
@@ -156,6 +213,10 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing.lg,
   },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   greeting: {
     fontSize: FontSize.xxl,
     fontWeight: '700',
@@ -165,6 +226,19 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
     marginTop: 2,
+  },
+  todayChip: {
+    marginTop: 6,
+    backgroundColor: Colors.primaryLight + '20',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.sm,
+    alignSelf: 'flex-start',
+  },
+  todayChipText: {
+    fontSize: FontSize.xs,
+    fontWeight: '600',
+    color: Colors.primary,
   },
   statsCard: {
     backgroundColor: Colors.primary,
@@ -213,7 +287,7 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 24,
     right: Spacing.lg,
     width: 56,
     height: 56,

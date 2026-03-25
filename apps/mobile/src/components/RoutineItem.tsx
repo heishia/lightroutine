@@ -10,9 +10,9 @@ interface Props {
 }
 
 const TIME_SLOT_LABELS: Record<string, string> = {
-  MORNING: 'Morning',
-  AFTERNOON: 'Afternoon',
-  EVENING: 'Evening',
+  MORNING: '아침',
+  AFTERNOON: '오후',
+  EVENING: '저녁',
 };
 
 export function RoutineItem({ routine, completed, onToggle, onPress }: Props) {
