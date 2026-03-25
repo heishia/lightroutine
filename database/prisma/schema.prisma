@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  nickname     String
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  routines    Routine[]
+  routineLogs RoutineLog[]
+
+  @@map("users")
+}
+
+model Routine {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  name       String
+  category   String
+  timeSlot   String    @map("time_slot")
+  color      String
+  repeatDays String    @map("repeat_days")
+  sortOrder  Int       @default(0) @map("sort_order")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  user User          @relation(fields: [userId], references: [id])
+  logs RoutineLog[]
+
+  @@index([userId])
+  @@map("routines")
+}
+
+model RoutineLog {
+  id        String   @id @default(uuid())
+  routineId String   @map("routine_id")
+  userId    String   @map("user_id")
+  logDate   DateTime @map("log_date") @db.Date
+  completed Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  routine Routine @relation(fields: [routineId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([routineId, logDate])
+  @@index([userId, logDate])
+  @@map("routine_logs")
+}

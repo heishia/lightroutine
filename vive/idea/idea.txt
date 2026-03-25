@@ -1,0 +1,64 @@
+LightRoutine - Routine Tracking App
+
+Target Platform: iOS, Android (React Native)
+Goal: Build and deploy a routine tracking MVP quickly, observe user reactions.
+
+---
+
+Tech Stack:
+- Mobile: Expo (SDK 52+), Expo Router, Zustand, TanStack Query
+- Backend: NestJS, Prisma, PostgreSQL
+- Deployment: Railway (backend), EAS Build (mobile)
+- Monorepo: npm workspaces
+- UI Theme: Light mode only
+
+---
+
+MVP Features:
+
+A. Authentication
+   - Email register / login
+   - JWT (Access + Refresh Token)
+   - Logout
+
+B. Routine Management (CRUD)
+   - Create: name, repeat cycle (daily / specific weekdays), category, time slot (morning/afternoon/evening), color
+   - Edit all attributes
+   - Soft delete (preserve history)
+   - List with time-slot grouping
+   - Reorder
+
+C. Tracking
+   - Toggle completion per routine per day
+   - View records by date
+   - Streak (consecutive completion days)
+
+D. Statistics
+   - Today completion rate
+   - Weekly completion rate
+   - Monthly calendar view (grass style)
+
+E. Screens (4 tabs)
+   - Home (today's routines)
+   - Calendar (monthly view)
+   - Statistics (charts, streak)
+   - Settings (profile, logout)
+
+---
+
+CI/CD:
+- Tag push triggers Railway auto-deploy (backend)
+- Railway CLI used actively for operations
+- CI (lint/test) runs only on manual workflow_dispatch
+- EAS Build for mobile app store submissions
+
+---
+
+Post-MVP (not in scope):
+- Social login (Kakao/Google)
+- Push notifications
+- Routine templates
+- Numeric tracking (water 2L, exercise 30min)
+- Timer feature
+- Routine sharing / community
+- Dark mode

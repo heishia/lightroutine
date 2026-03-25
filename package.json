@@ -1,0 +1,31 @@
+{
+  "name": "lightroutine",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "database"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w apps/api",
+    "dev:mobile": "npm run dev -w apps/mobile",
+    "build:api": "npm run build -w apps/api",
+    "build:mobile": "npm run build -w apps/mobile",
+    "lint": "npm run lint --workspaces --if-present",
+    "lint:api": "npm run lint -w apps/api",
+    "lint:mobile": "npm run lint -w apps/mobile",
+    "test": "npm run test --workspaces --if-present",
+    "test:api": "npm run test -w apps/api",
+    "db:generate": "npm run generate -w database",
+    "db:migrate": "npm run migrate -w database",
+    "db:migrate:prod": "npm run migrate:prod -w database",
+    "db:seed": "npm run seed -w database",
+    "db:studio": "npm run studio -w database",
+    "version:patch": "npm version patch && git push origin main && git push --tags",
+    "clean": "npm run clean --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

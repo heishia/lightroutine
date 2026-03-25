@@ -1,0 +1,36 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+!.vscode/settings.json
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Expo
+apps/mobile/.expo/
+apps/mobile/ios/
+apps/mobile/android/
+
+# NestJS
+apps/api/dist/
+
+# Prisma
+database/prisma/migrations/**/migration_lock.toml
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test
+coverage/
+
+# Build artifacts
+*.tsbuildinfo
